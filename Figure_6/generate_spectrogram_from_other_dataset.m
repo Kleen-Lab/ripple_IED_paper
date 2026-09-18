@@ -1,37 +1,7 @@
-% for i=1:size(Q.Events,1)
-%     w=whichside{i};
-%     if strcmpi(w(1),'R');
-%         Q.Events(i,9+2)=1;
-%     elseif strcmpi(w(1),'L');
-%         Q.Events(i,19+2)=1;
-%     end
-% end
-%  
-% 
-% 
-% frxrange=[1 200];
-% voz=8;
-% z=1; % yes z-score
-% numberOfFreqs=61;
-% 
-% d=Q.data;
-% % [header,d,sfx]=edfread(filename);
-% sfx=Q.sfx;
-% 
-% d512=[];
-% sfx512=512;
-% 
-% h_z=[];
-% sfxAA100=100;
-% 
-% for c=1:size(Q.data,2)
-%     d(:,c)=jkfilt(d(:,c),sfx,.1,floor(sfx512/2)-1); % antialisasing filter
-%     d512(:,c)=d(1:sfx/sfx512:end,c); %downsampled to 512 Hz
-%     if c==1;
-%         h_z=nan(length(d512(:,c)),size(d,2),numberOfFreqs);
-%     end
-%     [h_z(:,c,:),~,frx,~]=zAAPHZ(d512(:,c),sfx512,frxrange,z,1/voz); %hilbert analytic amplitude, z-scored
-% end
+% "ReferencesAndLinks": ["https://doi.org/10.1038/s41597-024-04187-y", "https://doi.org/10.6084/m9.figshare.26131978"],
+% "DatasetDOI": "10.6084/m9.figshare.26131978"
+% Falach, R., Geva-Sagiv, M., Eliashiv, D. et al. Annotated interictal discharges in intracranial EEG sleep data and related machine learning detection scheme. Sci Data 11, 1354 (2024). https://doi.org/10.1038/s41597-024-04187-y
+
 subject = 'sub-25';
 baseDir = '/Users/dazhang/Downloads/ieeg_ieds_bids';
 sfx512=512;
