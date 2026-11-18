@@ -694,7 +694,8 @@ class Trainer:
         y_pred = y_pred.cpu().numpy()
 
         
-        y_pred = np.amax(y_pred, axis=1)
+        # y_pred = np.amax(y_pred, axis=1)
+        y_pred = y_pred[:, 1]
         # print(len(y_pred))
         # print(y_true)
 
@@ -800,20 +801,33 @@ class Trainer:
                 total_loss += loss.item() * len(images)
 
                 # Calculate the accuracy
-                predictions = torch.argmax(logits, dim=1)
-                # predictions_value = torch.amax(logits, dim=1)
-                predictions_value = torch.amax(torch.sigmoid(logits), dim=1)
+                # predictions = torch.argmax(logits, dim=1)
+                # predictions_value = torch.amax(torch.sigmoid(logits), dim=1)
                 
-                cpu_prediction_value = predictions_value.cpu().numpy()
-                # cpu_prediction = torch.sigmoid(logits).cpu().numpy()
-                cpu_labels = labels.cpu().numpy()
-                cpu_pred.extend(cpu_prediction_value)
-                cpu_l.extend(cpu_labels)
-                cpu_prediction_label.extend(predictions.cpu().numpy())
-                # print("Logits......", torch.sigmoid(logits) )
+                # cpu_prediction_value = predictions_value.cpu().numpy()
+                # # cpu_prediction = torch.sigmoid(logits).cpu().numpy()
+                # cpu_labels = labels.cpu().numpy()
+                # cpu_pred.extend(cpu_prediction_value)
+                # cpu_l.extend(cpu_labels)
+                # cpu_prediction_label.extend(predictions.cpu().numpy())
+                # # print("Logits......", torch.sigmoid(logits) )
 
-                tensor_trial_probs = torch.cat((tensor_trial_probs, torch.sigmoid(logits)))
-                tensor_trial_label = torch.cat((tensor_trial_label, trial_label))
+                # tensor_trial_probs = torch.cat((tensor_trial_probs, torch.sigmoid(logits)))
+                # tensor_trial_label = torch.cat((tensor_trial_label, trial_label))
+
+
+                # Softmax probabilities for both classes
+                probabilities = torch.softmax(logits, dim=1)
+                # Predicted class
+                predictions = torch.argmax(probabilities, dim=1)
+                # Probability of class 1 (Spike / IED)
+                spike_prob_batch = probabilities[:, 1]
+                cpu_l.extend(labels.cpu().numpy())
+                cpu_prediction_label.extend(predictions.cpu().numpy())
+                spike_prob.extend(spike_prob_batch.cpu().numpy().tolist())
+
+                tensor_trial_probs = torch.cat((tensor_trial_probs, probabilities), dim=0)
+                tensor_trial_label = torch.cat((tensor_trial_label, trial_label), dim=0)
                 # print("Logits......",  tensor_trial_probs.shape, tensor_trial_label.shape)  
 
                 correct += torch.sum(predictions == labels).item()
@@ -822,11 +836,11 @@ class Trainer:
         trial_accuracy = trial_correct / len(testloader.dataset)
         avg_loss = total_loss / len(testloader.dataset)
 
-        for i, pred_label in enumerate(cpu_prediction_label):
-            if pred_label == 1:
-                spike_prob.append(cpu_pred[i])
-            else:
-                spike_prob.append(1-cpu_pred[i])
+        # for i, pred_label in enumerate(cpu_prediction_label):
+        #     if pred_label == 1:
+        #         spike_prob.append(cpu_pred[i])
+        #     else:
+        #         spike_prob.append(1-cpu_pred[i])
         
         print("Prediction label: ", cpu_prediction_label[30:70])
         print("True       label: ",cpu_l[30:70])
@@ -1116,7 +1130,7 @@ def main():
 
         # important: update after each batch
         global_idx += images.shape[0]
-    return 
+    # return 
 
     print("All raw spectrograms: ", all_specs.shape)
     
