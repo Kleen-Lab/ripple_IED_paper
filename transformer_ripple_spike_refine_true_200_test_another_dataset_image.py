@@ -1130,7 +1130,7 @@ def main():
 
         # important: update after each batch
         global_idx += images.shape[0]
-    # return 
+    return 
 
     print("All raw spectrograms: ", all_specs.shape)
     
