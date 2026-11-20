@@ -1044,8 +1044,8 @@ def main():
         predictions = torch.argmax(probabilities, dim=1)
         print(predictions)
         # print(probabilities)
-        tensor_sum = predictions.sum().item()
-        print(tensor_sum)
+        # tensor_sum = predictions.sum().item()
+        # print(tensor_sum)
 
         bad_indices = (predictions != 1).nonzero(as_tuple=True)[0]
         p_ied = probabilities[:, 1]

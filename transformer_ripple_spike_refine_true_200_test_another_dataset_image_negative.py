@@ -1040,13 +1040,26 @@ def main():
     for batch_idx, batch in enumerate(testloader): 
         images, labels = batch[0].to(cur_device), batch[1].to(cur_device) # (256  "This represents Batch Size  !!!!!!!")
         logits, attention_maps = best_model(images, output_attentions=True)
-        predictions = torch.argmax(logits, dim=1)
         probabilities = torch.softmax(logits, dim=1)
+        predictions = torch.argmax(probabilities, dim=1)
         print(predictions)
         # print(probabilities)
-        tensor_sum = predictions.sum().item()
-        print(tensor_sum)
+        # tensor_sum = predictions.sum().item()
+        # print(tensor_sum)
+
+        p_ied = probabilities[:, 1]
+        all_sample_indices.extend(np.arange(global_idx, global_idx + len(images)).tolist())
+        all_true_labels.extend(labels.cpu().numpy().tolist())
+        all_pred_labels.extend(predictions.cpu().numpy().tolist())
+        all_ied_probs.extend(p_ied.cpu().numpy().tolist())
+        # Negative samples incorrectly classified as IED
         bad_indices = (predictions != 0).nonzero(as_tuple=True)[0]
+        # NEW: Collect global indices across batches
+        all_bad_indices.extend((bad_indices.cpu().numpy() + global_idx).tolist())
+
+        print("Predictions:", predictions)
+        print("Misclassified in this batch:", len(bad_indices))
+
         for i in bad_indices.tolist():
             sample_idx = global_idx + i
             # -----------------------------------------
@@ -1118,6 +1131,33 @@ def main():
 
         # important: update after each batch
         global_idx += images.shape[0]
+
+    results_df = pd.DataFrame({
+        "patient": [patient] * len(all_true_labels),
+        "sample_idx": all_sample_indices,
+        "y_true": all_true_labels,
+        "y_pred": all_pred_labels,
+        "p_ied": all_ied_probs
+    })
+
+    # Check that all samples are included
+    assert len(results_df) == len(testset)
+    assert len(all_bad_indices) == saved_count
+    assert (results_df["y_true"] == 0).all()
+
+    results_df.to_csv(
+        os.path.join(save_dir, f"{patient}_negative_predictions.csv"),
+        index=False
+    )
+
+    np.save(
+        os.path.join(save_dir, f"{patient}_negative_bad_indices.npy"),
+        np.asarray(all_bad_indices, dtype=int)
+    )
+
+    print("Total negative samples:", global_idx)
+    print("False positives:", len(all_bad_indices))
+    print("Saved negative predictions.")
     return 
 
     print("All raw spectrograms: ", all_specs.shape)
