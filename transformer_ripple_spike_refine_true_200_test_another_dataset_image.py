@@ -1022,6 +1022,11 @@ def main():
     os.makedirs(save_dir, exist_ok=True)
     global_idx = 0 
     saved_count = 0
+    all_sample_indices = []
+    all_true_labels = []
+    all_pred_labels = []
+    all_ied_probs = []
+    all_bad_indices = []
    
     from scipy.io import loadmat
     from matplotlib.colors import ListedColormap
@@ -1035,14 +1040,26 @@ def main():
     for batch_idx, batch in enumerate(testloader): 
         images, labels = batch[0].to(cur_device), batch[1].to(cur_device) # (256  "This represents Batch Size  !!!!!!!")
         logits, attention_maps = best_model(images, output_attentions=True)
-        predictions = torch.argmax(logits, dim=1)
         probabilities = torch.softmax(logits, dim=1)
+        predictions = torch.argmax(probabilities, dim=1)
         print(predictions)
         # print(probabilities)
         tensor_sum = predictions.sum().item()
         print(tensor_sum)
 
         bad_indices = (predictions != 1).nonzero(as_tuple=True)[0]
+        p_ied = probabilities[:, 1]
+
+        all_sample_indices.extend(np.arange(global_idx, global_idx + len(images)).tolist())
+        all_true_labels.extend(labels.cpu().numpy().tolist())
+        all_pred_labels.extend(predictions.cpu().numpy().tolist())
+        all_ied_probs.extend(p_ied.cpu().numpy().tolist())
+
+        # NEW: Accumulate global bad indices
+        all_bad_indices.extend((bad_indices.cpu().numpy() + global_idx).tolist())
+
+        print("Predictions:", predictions)
+        print("Misclassified in this batch:", len(bad_indices))
 
         for i in bad_indices.tolist():
 
@@ -1052,11 +1069,7 @@ def main():
             # Recover original MATLAB spectrogram
             # ls_spec row: 6283 = 61 * 103
             # -----------------------------------------
-            spectrogram = x_test[sample_idx].reshape(
-                61,
-                103,
-                order='F'
-            )
+            spectrogram = x_test[sample_idx].reshape(61, 103, order='F')
 
             pred = predictions[i].item()
 
@@ -1130,6 +1143,23 @@ def main():
 
         # important: update after each batch
         global_idx += images.shape[0]
+    
+    results_df = pd.DataFrame({"patient": [patient] * len(all_true_labels),
+        "sample_idx": all_sample_indices,
+        "y_true": all_true_labels,
+        "y_pred": all_pred_labels,
+        "p_ied": all_ied_probs})
+
+    results_df.to_csv(os.path.join(save_dir,f"{patient}_positive_predictions.csv"), index=False)
+
+    # Save all misclassified positive sample indices
+    np.save(os.path.join(save_dir, f"{patient}_positive_bad_indices.npy"), np.asarray(all_bad_indices, dtype=int))
+
+    print("Total positive samples:", global_idx)
+    print("False negatives:", len(all_bad_indices))
+    print("Saved positive predictions.")
+    
+    
     return 
 
     print("All raw spectrograms: ", all_specs.shape)

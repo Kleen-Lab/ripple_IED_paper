@@ -1022,6 +1022,11 @@ def main():
     os.makedirs(save_dir, exist_ok=True)
     global_idx = 0 
     saved_count = 0
+    all_sample_indices = []
+    all_true_labels = []
+    all_pred_labels = []
+    all_ied_probs = []
+    all_bad_indices = []
    
     from scipy.io import loadmat
     from matplotlib.colors import ListedColormap
@@ -1041,23 +1046,16 @@ def main():
         # print(probabilities)
         tensor_sum = predictions.sum().item()
         print(tensor_sum)
-
         bad_indices = (predictions != 0).nonzero(as_tuple=True)[0]
-
         for i in bad_indices.tolist():
-
             sample_idx = global_idx + i
-
             # -----------------------------------------
             # Recover original MATLAB spectrogram
             # ls_spec row: 6283 = 61 * 103
             # -----------------------------------------
             spectrogram = x_test[sample_idx].reshape(61, 103, order='F')
-
             pred = predictions[i].item()
-
             prob = probabilities[i].detach().cpu().numpy()
-
             # -----------------------------------------
             # MATLAB:
             #
@@ -1069,7 +1067,6 @@ def main():
             # -----------------------------------------
 
             fig, ax = plt.subplots(figsize=(7, 5))
-
             # 103 samples centered around event
             x = np.arange(-51, 52)
             frx_plot = np.asarray(frx).squeeze()
@@ -1089,7 +1086,6 @@ def main():
             )
 
             ax.set_yscale("log")
-
             ax.set_xlabel("Samples relative to event")
             ax.set_ylabel("Frequency (Hz)")
 
